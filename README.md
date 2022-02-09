@@ -9,7 +9,8 @@ Import the ponyfill and use just like the spec.
 ```typescript
 import { openDatabase, configureSQLiteDB } from 'websql/mod.ts'
 
-configureSQLiteDB({ memory: false }) // Optional; required for persistence, defaults to memory: true
+// Optional; required for persistence, defaults to memory: true
+configureSQLiteDB({ memory: false })
 
 const db = openDatabase('myawesome.db', '1.0', 'MyAwesomeDB', 0)
 ```
