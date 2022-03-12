@@ -1,36 +1,31 @@
 // deno-lint-ignore-file no-explicit-any
 import { SQLTransaction } from './SQLTransaction.ts'
-import { SQLiteDB } from '../deps.ts'
-import type { SqliteOptions } from '../deps.ts'
+import { cache } from './SQLiteDBCache.ts'
+import type { TxMode } from './SQLiteDBCache.ts'
 
 export class Database {
   #name: string
   #version: string
-  #options: SqliteOptions
 
   constructor (name: string, version: string, _displayName: string, _estimatedSize: number) {
     this.#name = name
     this.#version = version
-    this.#options = options
   }
 
-  #doTransaction<T = any> (txMode: Exclude<SqliteOptions['mode'], undefined>, callback: TransactionCallback<T>, errorCallback?: (err: any) => any, successCallback?: () => any) {
+  #doTransaction<T = any> (txMode: TxMode, callback: TransactionCallback<T>, errorCallback?: (err: any) => any, successCallback?: () => any) {
+    // console.log('zoinks', new Error(this.#name))
     queueMicrotask(() => {
       try {
-        const db = new SQLiteDB(this.#name, { ...this.#options, mode: txMode })
+        const db = cache.db(this.#name, txMode)
         const transaction = new SQLTransaction<T>(db)
 
-        queueMicrotask(() => {
-          try {
-            callback(transaction)
+        try {
+          callback(transaction)
 
-            queueMicrotask(() => {
-              if (successCallback) successCallback()
-            })
-          } catch (error) {
-            if (errorCallback) errorCallback(error)
-          }
-        })
+          if (successCallback) successCallback()
+        } catch (error) {
+          if (errorCallback) errorCallback(error)
+        }
       } catch (error) {
         if (errorCallback) errorCallback(error)
       }
@@ -55,20 +50,6 @@ export class Database {
       if (callback) this.#doTransaction('write', callback, errorCallback, successCallback)
     }
   }
-}
-
-let options: SqliteOptions = {
-  memory: true
-}
-
-/** Mutates module options for underlying SQLiteDB implementation, and returns a clone of existing options. */
-export function configureSQLiteDB (customOptions: SqliteOptions = {}): SqliteOptions {
-  options = {
-    ...options,
-    ...customOptions
-  }
-
-  return structuredClone(options)
 }
 
 /** Implements the openDatabase function per the WebSQL spec. */
