@@ -16,13 +16,9 @@ export class SQLTransaction<T = any> {
         const data: any[] = this.#db.queryEntries(sqlStatement, args)
         const { lastInsertRowId: insertId, changes } = this.#db
         const resultSet = new SQLResultSet<T>(new SQLResultSetRowList<T>(data), insertId, changes)
-        queueMicrotask(() => {
-          callback(this, resultSet)
-        })
+        callback(this, resultSet)
       } catch (error) {
-        queueMicrotask(() => {
-          if (errorCallback) errorCallback(this, error)
-        })
+        if (errorCallback) errorCallback(this, error)
       }
     })
   }
