@@ -1,4 +1,4 @@
-import { SQLiteDB } from "../deps.ts";
+import { parse, SQLiteDB } from "../deps.ts";
 import type { SqliteOptions } from "../deps.ts";
 
 export type TxMode = Exclude<SqliteOptions["mode"], undefined>;
@@ -42,6 +42,11 @@ export class SQLiteDBCache {
   }
 
   #make(name: string, mode: TxMode): SQLiteDB {
+    if (!this.#options.memory) {
+      const parsed = parse(name);
+
+      if (parsed.dir !== "." && parsed.dir !== "") Deno.mkdirSync(parsed.dir);
+    }
     const newDb = new SQLiteDB(name, { ...this.#options, mode });
 
     this.#cache.set(name, newDb);
