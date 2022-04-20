@@ -13,6 +13,7 @@ export class SQLiteDBCache {
     this.#modes = {};
     this.#options = { memory: true };
     addEventListener("unload", () => this.#close());
+    addEventListener("destroy_sqlite", () => this.#close());
   }
 
   db(name: string, mode: TxMode): SQLiteDB {
@@ -45,7 +46,9 @@ export class SQLiteDBCache {
     if (!this.#options.memory) {
       const parsed = parse(name);
 
-      if (parsed.dir !== "." && parsed.dir !== "") Deno.mkdirSync(parsed.dir);
+      if (parsed.dir !== "." && parsed.dir !== "") {
+        Deno.mkdirSync(parsed.dir, { recursive: true });
+      }
     }
     const newDb = new SQLiteDB(name, { ...this.#options, mode });
 
@@ -59,6 +62,7 @@ export class SQLiteDBCache {
     for (const db of this.#cache.values()) {
       db.close(true);
     }
+    this.#cache.clear();
   }
 }
 
