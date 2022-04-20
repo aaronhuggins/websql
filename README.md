@@ -15,6 +15,13 @@ configureSQLiteDB({ memory: false });
 const db = openDatabase("myawesome.db", "1.0", "MyAwesomeDB", 0);
 ```
 
+Dispatching an event of type `destroy_sqlite` will close all open file handles
+and clear all cached database instances.
+
+```typescript
+dispatchEvent(new Event("destroy_sqlite"));
+```
+
 ## Documentation
 
 Please [see the spec](https://www.w3.org/TR/webdatabase/#sql) for complete
