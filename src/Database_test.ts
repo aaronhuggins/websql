@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "../dev_deps.ts";
-import { configureSQLiteDB, Database, openDatabase } from "./Database.ts";
+import { configureSQLiteDB } from "./SQLiteDBCache.ts";
+import { Database, openDatabase } from "./Database.ts";
 import { SQLTransaction } from "./SQLTransaction.ts";
 
 async function tx(txFunc: Database["transaction"], withSuccess = false) {
@@ -54,9 +55,11 @@ Deno.test("Database", async ({ step }) => {
   });
 
   await step("should open an instance", () => {
-    database = openDatabase("mytest.db", "1", "mytest", 1024);
+    configureSQLiteDB({ memory: false });
+    database = openDatabase("./temp/mytest.db", "1", "mytest", 1024);
 
     assertEquals(database instanceof Database, true);
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("version should equal 1", () => {
@@ -67,24 +70,28 @@ Deno.test("Database", async ({ step }) => {
     const transaction = await tx(database.transaction.bind(database));
 
     assertEquals(transaction instanceof SQLTransaction, true);
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should return a read-only transaction", async () => {
     const transaction = await tx(database.readTransaction.bind(database));
 
     assertEquals(transaction instanceof SQLTransaction, true);
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should call the success callback", async () => {
     const transaction = await tx(database.transaction.bind(database), true);
 
     assertEquals(transaction, true);
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should change version to 3", () => {
     database.changeVersion("1", "3");
 
     assertEquals(database.version, "3");
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should change version to 4 with transaction", async () => {
@@ -92,12 +99,14 @@ Deno.test("Database", async ({ step }) => {
 
     assertEquals(database.version, "4");
     assertEquals(transaction instanceof SQLTransaction, true);
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should throw error in inner transaction callback", async () => {
     await assertRejects(async () => {
       await innerErrorTx(database.transaction.bind(database));
     });
+    dispatchEvent(new Event("destroy_sqlite"));
   });
 
   await step("should throw error for misconfiguration", async () => {
