@@ -3,6 +3,8 @@ import type { SqliteOptions } from "../deps.ts";
 
 export type TxMode = Exclude<SqliteOptions["mode"], undefined>;
 
+const isDenoDeploy = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
+
 export class SQLiteDBCache {
   #cache: Map<string, SQLiteDB>;
   #modes: Record<string, TxMode>;
@@ -17,7 +19,11 @@ export class SQLiteDBCache {
   }
 
   db(name: string, mode: TxMode): SQLiteDB {
-    mode = this.#options.memory ? "create" : mode;
+    mode = this.#options.memory
+      ? "create"
+      : isDenoDeploy
+        ? "read"
+        : mode;
     const cached = this.#cache.get(name);
 
     if (cached === undefined) {
@@ -46,10 +52,8 @@ export class SQLiteDBCache {
     if (!this.#options.memory) {
       const parsed = parse(name);
 
-      if (parsed.dir !== "." && parsed.dir !== "") {
-        const isDenoDeploy = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
-
-        if (!isDenoDeploy) Deno.mkdirSync(parsed.dir, { recursive: true });
+      if (parsed.dir !== "." && parsed.dir !== "" && !isDenoDeploy) {
+        Deno.mkdirSync(parsed.dir, { recursive: true });
       }
     }
     const newDb = new SQLiteDB(name, { ...this.#options, mode });
