@@ -47,7 +47,9 @@ export class SQLiteDBCache {
       const parsed = parse(name);
 
       if (parsed.dir !== "." && parsed.dir !== "") {
-        Deno.mkdirSync(parsed.dir, { recursive: true });
+        const isDenoDeploy = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
+
+        if (!isDenoDeploy) Deno.mkdirSync(parsed.dir, { recursive: true });
       }
     }
     const newDb = new SQLiteDB(name, { ...this.#options, mode });
